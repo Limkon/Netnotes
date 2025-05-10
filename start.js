@@ -9,7 +9,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 
 // --- 1. 配置和常量 ---
 const PUBLIC_PORT = 8100;
-const APP_INTERNAL_PORT = 3000; // server.js (主应用) 固定监听的内部端口
+const APP_INTERNAL_PORT = 3001; // server.js (主应用) 固定监听的内部端口
 
 const MASTER_PASSWORD_STORAGE_FILE = path.join(__dirname, 'master_auth_config.enc');
 const USER_CREDENTIALS_STORAGE_FILE = path.join(__dirname, 'user_credentials.enc');
