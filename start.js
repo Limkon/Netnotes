@@ -537,7 +537,7 @@ app.get('/login', (req, res) => {
         <!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>登录</title><style>${pageStyles}</style></head>
         <body><div class="container">
             <form method="POST" action="/do_login" id="loginForm">
-                <h2>请输入凭证访问</h2>
+                <h2>请输入访问密码</h2>
                 ${messageHtml}
                 <label for="username">用户名:</label>
                 <input type="text" id="username" name="username" autofocus>
