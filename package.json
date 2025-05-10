@@ -1,14 +1,20 @@
 {
-  "name": "notepad-nodejs-localfile",
+  "name": "notepad-nodejs-localfile-auth",
   "version": "1.0.0",
-  "description": "A web notepad application with local file storage",
-  "main": "server.js",
+  "description": "A web notepad application with local file storage and authentication gateway",
+  "main": "start.cjs",
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "start": "node start.cjs",
+    "dev": "nodemon start.cjs"
   },
-  "keywords": ["notepad", "nodejs", "localstorage"],
+  "keywords": [
+    "notepad",
+    "nodejs",
+    "localstorage",
+    "auth",
+    "proxy"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -17,7 +23,10 @@
     "express": "^4.19.2",
     "method-override": "^3.0.0",
     "multer": "^1.4.5-lts.1",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.6",
+    "http-proxy-middleware": "^2.0.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.3"
