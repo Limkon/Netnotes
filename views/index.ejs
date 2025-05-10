@@ -1,0 +1,67 @@
+<%- include('partials/header') %>
+
+<section class="page-header">
+    <h2>所有记事</h2>
+    <div class="controls filter-sort-controls">
+        <form action="/notes" method="GET" class="filter-sort-form">
+            <div class="form-inline-group">
+                <label for="titleSearch">标题搜索:</label>
+                <input type="text" name="title" id="titleSearch" value="<%= currentTitle || '' %>" placeholder="输入标题关键词...">
+            </div>
+            <div class="form-inline-group">
+                <label for="sortBy">排序方式:</label>
+                <select name="sortBy" id="sortBy">
+                    <option value="updatedAt" <%= currentSort.sortBy === 'updatedAt' ? 'selected' : '' %>>更新日期</option>
+                    <option value="createdAt" <%= currentSort.sortBy === 'createdAt' ? 'selected' : '' %>>创建日期</option>
+                    <option value="title" <%= currentSort.sortBy === 'title' ? 'selected' : '' %>>标题</option>
+                </select>
+            </div>
+            <div class="form-inline-group">
+                <label for="order">顺序:</label>
+                <select name="order" id="order">
+                    <option value="desc" <%= currentSort.order === 'desc' ? 'selected' : '' %>>降序</option>
+                    <option value="asc" <%= currentSort.order === 'asc' ? 'selected' : '' %>>升序</option>
+                </select>
+            </div>
+            <button type="submit" class="btn">筛选/排序</button>
+        </form>
+    </div>
+</section>
+
+<% if (notes.length > 0) { %>
+    <ul class="notes-list">
+        <% notes.forEach(note => { %>
+            <li class="note-item card">
+                <div class="card-body">
+                    <h3 class="card-title"><a href="/notes/<%= note.id %>/edit"><%= note.title %></a></h3>
+                    <p class="note-meta">
+                        创建: <%= new Date(note.createdAt).toLocaleString('zh-CN') %> |
+                        更新: <%= new Date(note.updatedAt).toLocaleString('zh-CN') %>
+                    </p>
+                    <div class="note-content-preview">
+                        <% if (note.content) { %>
+                            <%
+                                let plainTextContent = note.content.replace(/<[^>]+>/g, ''); // 移除HTML标签
+                                let preview = plainTextContent.length > 150 ? plainTextContent.substring(0, 150) + '...' : plainTextContent;
+                            %>
+                            <%- preview.length > 0 ? preview : '<i>(无文本内容预览)</i>' %>
+                        <% } else { %>
+                            <i>(无内容)</i>
+                        <% } %>
+                    </div>
+                    <div class="note-actions">
+                        <a href="/notes/<%= note.id %>/edit" class="btn btn-sm btn-warning">编辑</a>
+                        <form method="POST" action="/notes/<%= note.id %>?_method=DELETE" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('确定删除这篇记事吗？《<%= note.title %>》')">删除</button>
+                        </form>
+                        <a href="/notes/<%= note.id %>" class="btn btn-sm btn-info">查看详情</a>
+                    </div>
+                </div>
+            </li>
+        <% }) %>
+    </ul>
+<% } else { %>
+    <p class="empty-notes-message">还没有任何记事。 <a href="/notes/new">马上创建一篇吧！</a></p>
+<% } %>
+
+<%- include('partials/footer') %>
