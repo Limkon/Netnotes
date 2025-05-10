@@ -1,7 +1,7 @@
 {
   "name": "notepad-nodejs-localfile-auth",
   "version": "1.0.0",
-  "description": "A web notepad application with local file storage and authentication gateway",
+  "description": "一個帶有本地文件存儲和認證網關的網絡記事本應用",
   "main": "start.cjs",
   "type": "module",
   "scripts": {
