@@ -2,11 +2,10 @@
   "name": "notepad-nodejs-localfile-auth",
   "version": "1.0.0",
   "description": "一個帶有本地文件存儲和認證網關的網絡記事本應用",
-  "main": "start.cjs",
-  "type": "module",
+  "main": "start.js",
   "scripts": {
-    "start": "node start.cjs",
-    "dev": "nodemon start.cjs"
+    "start": "node start.js",
+    "dev": "nodemon start.js"
   },
   "keywords": [
     "notepad",
