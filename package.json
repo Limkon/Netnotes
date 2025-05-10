@@ -5,8 +5,8 @@
       "main": "start.cjs", 
       "type": "module",
       "scripts": {
-        "start": "node start.cjs", //
-        "dev": "nodemon start.cjs"   //
+        "start": "node start.cjs", 
+        "dev": "nodemon start.cjs"  
       },
       "keywords": [
         "notepad",
