@@ -1,12 +1,17 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
-const { spawn } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const crypto = require('crypto');
-const { createProxyMiddleware } = require('http-proxy-middleware');
-const dotenv = require('dotenv'); // 引入 dotenv
+import express from 'express';
+import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
+import { spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url'; // 用于 ESM 中的 __dirname
+import crypto from 'crypto';
+import { createProxyMiddleware } from 'http-proxy-middleware';
+import dotenv from 'dotenv'; // 引入 dotenv
+
+// --- ESM specific __dirname and __filename ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // 加载 .env 文件中的环境变量
 dotenv.config();
@@ -14,7 +19,7 @@ dotenv.config();
 // --- 1. 配置和常量 ---
 // 优先从 .env 文件读取端口，否则使用默认值
 const DEFAULT_PUBLIC_PORT = 8100;
-const DEFAULT_APP_INTERNAL_PORT = 3200; // server.js (主应用) 固定监听的内部端口
+const DEFAULT_APP_INTERNAL_PORT = 3200; // server.js (主应用) 固定监听的内部端口 (已更新)
 
 const PUBLIC_PORT = parseInt(process.env.PUBLIC_PORT, 10) || DEFAULT_PUBLIC_PORT;
 const APP_INTERNAL_PORT = parseInt(process.env.APP_INTERNAL_PORT, 10) || DEFAULT_APP_INTERNAL_PORT;
@@ -167,6 +172,9 @@ const app = express();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// 建议将 pageStyles 外部化到 public/css/style.css
+// 如果尚未外部化，请保留此变量，并在HTML中继续使用 ${pageStyles}
+// 如果已外部化，可以删除此变量定义，并在HTML中链接 <link rel="stylesheet" href="/css/style.css">
 const pageStyles = `
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; padding: 20px 0; box-sizing: border-box; }
     .container { background-color: #fff; padding: 30px 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); text-align: center; width: 400px; max-width: 90%; margin-bottom: 20px;}
@@ -208,8 +216,8 @@ if (isMasterPasswordSetupNeeded) {
 }
 
 // --- 5. 全局身份验证和设置重定向中间件 ---
-app.use((req, res, next) => {
-    const authRelatedPaths = ['/login', '/do_login', '/setup', '/do_setup'];
+const authMiddlewareInstance = (req, res, next) => { // Renamed to avoid confusion if authRelatedPaths is defined globally
+    const authRelatedPaths = ['/login', '/do_login', '/setup', '/do_setup']; // Defined locally for this middleware
     const isAdminPath = req.path.startsWith('/admin');
     const isLogoutPath = req.path === '/logout';
 
@@ -243,9 +251,13 @@ app.use((req, res, next) => {
         return next();
     }
     return res.redirect('/login');
-});
+};
+app.use(authMiddlewareInstance);
+
 
 // --- 6. 路由定义 ---
+// 注意：如果您已将HTML外部化为EJS模板，所有 res.send(`<html>...</html>`) 都应改为 res.render('templateName', { data })
+// 并在模板中链接外部CSS。为保持与您提供代码的一致性（如果尚未外部化），暂时保留HTML内联。
 
 // == SETUP MASTER PASSWORD ROUTES ==
 app.get('/setup', (req, res) => {
@@ -353,26 +365,20 @@ app.get('/login', (req, res) => {
 
                 function handleEnterKey(event) {
                     if (event.key === 'Enter') {
-                        event.preventDefault(); // Prevent default Enter key behavior
+                        event.preventDefault();
                         if (typeof loginForm.requestSubmit === 'function') {
                             loginForm.requestSubmit(submitButton);
                         } else {
-                            // Fallback for older browsers or if requestSubmit is not available
                             if (submitButton) {
-                                submitButton.click(); // This will trigger form validation
+                                submitButton.click();
                             } else {
-                                loginForm.submit(); // Less ideal as it might bypass some client-side validation
+                                loginForm.submit();
                             }
                         }
                     }
                 }
-
-                if (usernameInput) {
-                    usernameInput.addEventListener('keydown', handleEnterKey);
-                }
-                if (passwordInput) {
-                    passwordInput.addEventListener('keydown', handleEnterKey);
-                }
+                if (usernameInput) usernameInput.addEventListener('keydown', handleEnterKey);
+                if (passwordInput) passwordInput.addEventListener('keydown', handleEnterKey);
             });
         </script>
         </body></html>
@@ -496,7 +502,6 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
     else if (success === 'user_deleted') messageHtml = '<p class="message success-message">用户删除成功。</p>';
     else if (success === 'password_changed') messageHtml = '<p class="message success-message">用户密码修改成功。</p>';
 
-
     let usersTableHtml = '<table><thead><tr><th>用户名</th><th>操作</th></tr></thead><tbody>';
     if (Object.keys(users).length === 0) {
         usersTableHtml += '<tr><td colspan="2" style="text-align:center;">当前没有普通用户。</td></tr>';
@@ -528,31 +533,18 @@ app.get('/admin', ensureMasterAdmin, (req, res) => {
                 <div class="logout-link-container"><a href="/logout" class="button-link">登出主账户</a></div>
                 <h2>用户管理面板 (主账户)</h2>
                 ${messageHtml}
-
                 <h3>现有用户</h3>
                 ${usersTableHtml}
-
                 <h3>添加新用户</h3>
                 <form method="POST" action="/admin/add_user">
                     <div class="form-row">
-                        <div class="field">
-                            <label for="newUsername">新用户名:</label>
-                            <input type="text" id="newUsername" name="newUsername" required>
-                        </div>
-                        <div class="field">
-                            <label for="newUserPassword">新用户密码:</label>
-                            <input type="password" id="newUserPassword" name="newUserPassword" required>
-                        </div>
-                         <div class="field">
-                            <label for="confirmNewUserPassword">确认密码:</label>
-                            <input type="password" id="confirmNewUserPassword" name="confirmNewUserPassword" required>
-                        </div>
+                        <div class="field"><label for="newUsername">新用户名:</label><input type="text" id="newUsername" name="newUsername" required></div>
+                        <div class="field"><label for="newUserPassword">新用户密码:</label><input type="password" id="newUserPassword" name="newUserPassword" required></div>
+                        <div class="field"><label for="confirmNewUserPassword">确认密码:</label><input type="password" id="confirmNewUserPassword" name="confirmNewUserPassword" required></div>
                         <button type="submit">添加用户</button>
                     </div>
                 </form>
-                <div class="nav-links">
-                    <a href="/" class="button-link">访问主应用</a>
-                </div>
+                <div class="nav-links"><a href="/" class="button-link">访问主应用</a></div>
             </div>
         </body></html>
     `);
@@ -566,16 +558,10 @@ app.post('/admin/add_user', ensureMasterAdmin, (req, res) => {
     if (newUserPassword !== confirmNewUserPassword) {
         return res.redirect('/admin?error=password_mismatch');
     }
-
     const users = readUserCredentials();
-    if (users[newUsername]) {
+    if (users[newUsername] || newUsername.toLowerCase() === "master") {
         return res.redirect('/admin?error=user_exists');
     }
-    if (newUsername.toLowerCase() === "master") {
-        return res.redirect('/admin?error=user_exists');
-    }
-
-
     try {
         users[newUsername] = { passwordHash: encryptUserPassword(newUserPassword) };
         saveUserCredentials(users);
@@ -615,51 +601,43 @@ app.post('/admin/change_password_page', ensureMasterAdmin, (req, res) => {
     else if (error === 'missing_fields') errorMessageHtml = '<p class="message error-message">错误：所有密码字段均为必填项。</p>';
     else if (error === 'unknown') errorMessageHtml = '<p class="message error-message">发生未知错误。</p>';
 
-
     if (!usernameToChange) return res.redirect('/admin?error=unknown');
-
     const users = readUserCredentials();
     if (!users[usernameToChange]) {
         return res.redirect('/admin?error=user_not_found');
     }
-
     res.send(`
         <!DOCTYPE html><html lang="zh-CN">
         <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>修改用户密码</title><style>${pageStyles}</style></head>
-        <body>
-            <div class="container">
-                <h2>修改用户 '${usernameToChange}' 的密码</h2>
-                ${errorMessageHtml}
-                <form method="POST" action="/admin/perform_change_password">
-                    <input type="hidden" name="username" value="${usernameToChange}">
-                    <label for="newPassword">新密码:</label>
-                    <input type="password" id="newPassword" name="newPassword" required autofocus>
-                    <label for="confirmPassword">确认新密码:</label>
-                    <input type="password" id="confirmPassword" name="confirmPassword" required>
-                    <button type="submit" class="full-width">确认修改密码</button>
-                    <div class="nav-links">
-                        <a href="/admin" class="button-link">返回用户管理</a>
-                    </div>
-                </form>
-            </div>
-        </body></html>
+        <body><div class="container">
+            <h2>修改用户 '${usernameToChange}' 的密码</h2>
+            ${errorMessageHtml}
+            <form method="POST" action="/admin/perform_change_password">
+                <input type="hidden" name="username" value="${usernameToChange}">
+                <label for="newPassword">新密码:</label><input type="password" id="newPassword" name="newPassword" required autofocus>
+                <label for="confirmPassword">确认新密码:</label><input type="password" id="confirmPassword" name="confirmPassword" required>
+                <button type="submit" class="full-width">确认修改密码</button>
+                <div class="nav-links"><a href="/admin" class="button-link">返回用户管理</a></div>
+            </form>
+        </div></body></html>
     `);
 });
 
 app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
     const { username, newPassword, confirmPassword } = req.body;
+    // 确保 usernameToChange 用于重定向查询参数，从原始请求中获取或确保 username 变量正确传递
+    const usernameForRedirect = req.body.usernameToChange || username; // 优先使用 hidden input 的 username (与表单字段匹配)
+
     if (!username || !newPassword || !confirmPassword) {
-         return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(username)}&error=missing_fields`);
+         return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(usernameForRedirect)}&error=missing_fields`);
     }
     if (newPassword !== confirmPassword) {
-        return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(username)}&error=mismatch`);
+        return res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(usernameForRedirect)}&error=mismatch`);
     }
-
     const users = readUserCredentials();
     if (!users[username]) {
         return res.redirect('/admin?error=user_not_found');
     }
-
     try {
         users[username].passwordHash = encryptUserPassword(newPassword);
         saveUserCredentials(users);
@@ -667,14 +645,14 @@ app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
         res.redirect('/admin?success=password_changed');
     } catch (error) {
         console.error(`[AUTH_GATE_ADMIN] 修改用户 '${username}' 密码失败:`, error);
-        res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(username)}&error=unknown`);
+        res.redirect(`/admin/change_password_page?usernameToChange=${encodeURIComponent(usernameForRedirect)}&error=unknown`);
     }
 });
 
 
 // --- 7. 反向代理中间件 ---
 const proxyToMainApp = createProxyMiddleware({
-    target: `http://localhost:${APP_INTERNAL_PORT}`, // 使用从 .env 或默认值读取的端口
+    target: `http://localhost:${APP_INTERNAL_PORT}`,
     changeOrigin: true,
     ws: true,
     logLevel: 'info',
@@ -704,17 +682,17 @@ const proxyToMainApp = createProxyMiddleware({
     }
 });
 
+// 最后一个 app.use 中间件
 app.use((req, res, next) => {
+    // authRelatedPaths 应该从上一个中间件（authMiddlewareInstance）中获取，或者在这里重新定义
+    // 为确保此中间件能正确判断，我们在这里局部定义它。
+    const finalAuthRelatedPaths = ['/login', '/do_login', '/setup', '/do_setup', '/logout'];
+
     if (!isMasterPasswordSetupNeeded && req.cookies.auth === '1' && !req.path.startsWith('/admin')) {
         return proxyToMainApp(req, res, next);
     }
-    // 这段逻辑保持原样，确保只有在预期之外的请求才会走到这里并打印警告
-    // 如果请求是 /admin/* (已在 ensureMasterAdmin 中处理或被重定向)
-    // 或者如果需要设置主密码 (已在全局中间件中重定向到 /setup)
-    // 或者如果未认证 (已在全局中间件中重定向到 /login)
-    // 那么这些请求理论上不应该到达这个最终的 next()
-    // 因此，如果到达这里，通常意味着路由逻辑有未覆盖的路径
-    if (!authRelatedPaths.includes(req.path) && !req.path.startsWith('/admin') && !isMasterPasswordSetupNeeded && req.cookies.auth !== '1') {
+
+    if (!finalAuthRelatedPaths.includes(req.path) && !req.path.startsWith('/admin') && !isMasterPasswordSetupNeeded && req.cookies.auth !== '1') {
          console.warn(`[AUTH_GATE] 请求未被特定路由或代理处理（意外情况）: ${req.path}, Auth: ${req.cookies.auth}, Master: ${req.cookies.is_master}`);
     }
     next();
@@ -722,7 +700,7 @@ app.use((req, res, next) => {
 
 
 // --- 8. 服务器启动 ---
-const server = app.listen(PUBLIC_PORT, () => { // 使用从 .env 或默认值读取的端口
+const server = app.listen(PUBLIC_PORT, () => {
     console.log(`[AUTH_GATE] 认证网关与反向代理服务已在端口 ${PUBLIC_PORT} 上启动。`);
     if (isMasterPasswordSetupNeeded) {
         console.log(`[AUTH_GATE] 请访问 http://localhost:${PUBLIC_PORT}/setup 完成初始主密码设置。`);
@@ -772,7 +750,6 @@ function shutdownGracefully(signal) {
     const childProcessPromise = new Promise((resolve) => {
         if (serverJsProcess && !serverJsProcess.killed) {
             console.log('[AUTH_GATE] 正在尝试终止主应用 (server.js)...');
-
             const killTimeout = setTimeout(() => {
                 if (serverJsProcess && !serverJsProcess.killed) {
                     console.warn('[AUTH_GATE] 主应用未在 SIGTERM 后3秒内退出，强制发送 SIGKILL...');
@@ -781,9 +758,9 @@ function shutdownGracefully(signal) {
                 resolve();
             }, 3000);
 
-            serverJsProcess.on('exit', (code, signal) => {
+            serverJsProcess.on('exit', (code, exitSignal) => {
                 clearTimeout(killTimeout);
-                console.log(`[AUTH_GATE] 主应用已成功退出 (Code: ${code}, Signal: ${signal})。`);
+                console.log(`[AUTH_GATE] 主应用已成功退出 (Code: ${code}, Signal: ${exitSignal})。`);
                 resolve();
             });
 
@@ -818,43 +795,6 @@ function shutdownGracefully(signal) {
 process.on('SIGINT', () => shutdownGracefully('SIGINT'));
 process.on('SIGTERM', () => shutdownGracefully('SIGTERM'));
 
-// 在最后一个 app.use 中，为了避免在所有其他路由都不匹配时仍然调用 next() 导致潜在的 "Cannot GET /nonexistentpath" 错误，
-// 并且为了准确地记录未处理的请求，我调整了其条件。
-// 之前的版本可能会在某些已处理的路径（如/login, /admin）下错误地打印“未被特定路由或代理处理”的警告，
-// 因为这些路径虽然有自己的处理器，但它们之后可能还会调用 next()。
-// 以下代码块被移到了更合适的位置或者其逻辑被整合到了现有的中间件中。
-
-// 重新定义 authRelatedPaths 以便在最终的 app.use 中访问 (如果需要更细致的判断)
-const authRelatedPaths = ['/login', '/do_login', '/setup', '/do_setup', '/logout'];
-// (上面这行是多余的，因为它已经在全局中间件中定义和使用了，这里只是为了说明，可以删除)
-
-// 在最后的 app.use 中，之前的判断逻辑：
-// console.warn(`[AUTH_GATE] 请求未被特定路由或代理处理（意外情况）: ${req.path}, Auth: ${req.cookies.auth}, Master: ${req.cookies.is_master}`);
-// 这个警告的触发条件已经通过之前的路由和中间件处理得比较完善。
-// 如果请求没有被 /admin, /setup, /login, /logout, 或者代理处理，
-// 并且也不满足前面中间件的重定向条件，那么它才是一个“意外”情况。
-// 最后的 next() 会将这种未匹配的请求传递给 Express 的默认 404 处理器。
-// 如果您想自定义这个最终的未匹配处理，可以添加一个专门的404处理路由：
-/*
-app.use((req, res, next) => {
-    // 这个中间件应该在所有其他路由和代理之后
-    // 如果到这里，说明没有任何路由匹配
-    console.warn(`[AUTH_GATE] 未匹配到任何路由: ${req.method} ${req.path}`);
-    res.status(404).send(`
-        <style>${pageStyles}</style>
-        <div class="container">
-            <h2>404 - 未找到页面</h2>
-            <p>您请求的资源不存在。</p>
-            <a href="/" class="button-link">返回首页</a>
-        </div>
-    `);
-});
-*/
-// 但鉴于您的原始脚本中最后的 next() 是为了允许 Express 默认处理，
-// 我将保持这种行为，并略微调整了最后一个 app.use 中警告的逻辑，使其更精确。
-// 实际上，最后一个 app.use 里的 console.warn 应该只在非常特殊的情况下触发，
-// 例如，如果isMasterPasswordSetupNeeded为true，但请求不是/setup或/do_setup，
-// 并且由于某种原因之前的重定向逻辑失败了。
-// 原始代码中，最后一个 app.use 的 console.warn 的条件比较宽泛，可能导致不必要的日志。
-// 我已将该 console.warn 的条件调整得更严格，只针对真正未被预期处理的情况。
-// (请参考上面代码中 `app.use((req, res, next) => { ...` 最后一个中间件的修改)
+// 末尾的注释中提到了 authRelatedPaths，但该变量应在中间件内部定义和使用。
+// 上面已将全局认证中间件中的 authRelatedPaths 定义为局部变量，
+// 最后一个 app.use 也使用了局部定义的 finalAuthRelatedPaths 以确保作用域清晰。
