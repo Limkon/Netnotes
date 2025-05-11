@@ -19,7 +19,7 @@ dotenv.config();
 // --- 1. 配置和常量 ---
 // 优先从 .env 文件读取端口，否则使用默认值
 const DEFAULT_PUBLIC_PORT = 8100;
-const DEFAULT_APP_INTERNAL_PORT = 3200; // server.js (主应用) 固定监听的内部端口 (已更新)
+const DEFAULT_APP_INTERNAL_PORT = 3100; // server.js (主应用) 固定监听的内部端口 (已更新)
 
 const PUBLIC_PORT = parseInt(process.env.PUBLIC_PORT, 10) || DEFAULT_PUBLIC_PORT;
 const APP_INTERNAL_PORT = parseInt(process.env.APP_INTERNAL_PORT, 10) || DEFAULT_APP_INTERNAL_PORT;
