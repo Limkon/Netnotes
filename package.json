@@ -1,0 +1,25 @@
+{
+  "name": "notepad-nodejs-localfile",
+  "version": "1.0.0",
+  "description": "A web notepad application with local file storage",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": ["notepad", "nodejs", "localstorage"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "method-override": "^3.0.0",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.3"
+  }
+}
