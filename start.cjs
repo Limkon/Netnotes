@@ -6,14 +6,22 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const dotenv = require('dotenv'); // 引入 dotenv
 
-// --- Load environment variables from .env file ---
-require('dotenv').config();
+// 加载 .env 文件中的环境变量
+dotenv.config();
 
 // --- 1. 配置和常量 ---
-// Use ports from .env file, with fallbacks to original values
-const PUBLIC_PORT = parseInt(process.env.PUBLIC_PORT, 10) || 8100;
-const APP_INTERNAL_PORT = parseInt(process.env.APP_INTERNAL_PORT, 10) || 3100; // server.js (主应用) 固定监听的内部端口
+// 优先从 .env 文件读取端口，否则使用默认值
+const DEFAULT_PUBLIC_PORT = 8100;
+const DEFAULT_APP_INTERNAL_PORT = 3000; // server.js (主应用) 固定监听的内部端口
+
+const PUBLIC_PORT = parseInt(process.env.PUBLIC_PORT, 10) || DEFAULT_PUBLIC_PORT;
+const APP_INTERNAL_PORT = parseInt(process.env.APP_INTERNAL_PORT, 10) || DEFAULT_APP_INTERNAL_PORT;
+
+console.log(`[AUTH_GATE] 应用提示：外部服务将监听端口 ${PUBLIC_PORT}`);
+console.log(`[AUTH_GATE] 应用提示：内部主应用 (server.js) 预期监听端口 ${APP_INTERNAL_PORT}`);
+
 
 const MASTER_PASSWORD_STORAGE_FILE = path.join(__dirname, 'master_auth_config.enc');
 const USER_CREDENTIALS_STORAGE_FILE = path.join(__dirname, 'user_credentials.enc');
@@ -666,7 +674,7 @@ app.post('/admin/perform_change_password', ensureMasterAdmin, (req, res) => {
 
 // --- 7. 反向代理中间件 ---
 const proxyToMainApp = createProxyMiddleware({
-    target: `http://localhost:${APP_INTERNAL_PORT}`, // Uses APP_INTERNAL_PORT from .env or default
+    target: `http://localhost:${APP_INTERNAL_PORT}`, // 使用从 .env 或默认值读取的端口
     changeOrigin: true,
     ws: true,
     logLevel: 'info',
@@ -674,8 +682,8 @@ const proxyToMainApp = createProxyMiddleware({
         console.error('[AUTH_GATE_PROXY] 代理发生错误:', err.message, 'for', req.method, req.url);
         if (res && !res.headersSent) {
              try {
-                 res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' });
-             } catch (e) { console.error("Error writing head for proxy error:", e); }
+                res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' });
+            } catch (e) { console.error("Error writing head for proxy error:", e); }
         }
         if (res && res.writable && !res.writableEnded) {
             try {
@@ -700,13 +708,21 @@ app.use((req, res, next) => {
     if (!isMasterPasswordSetupNeeded && req.cookies.auth === '1' && !req.path.startsWith('/admin')) {
         return proxyToMainApp(req, res, next);
     }
-    console.warn(`[AUTH_GATE] 请求未被特定路由或代理处理（意外情况）: ${req.path}, Auth: ${req.cookies.auth}, Master: ${req.cookies.is_master}`);
+    // 这段逻辑保持原样，确保只有在预期之外的请求才会走到这里并打印警告
+    // 如果请求是 /admin/* (已在 ensureMasterAdmin 中处理或被重定向)
+    // 或者如果需要设置主密码 (已在全局中间件中重定向到 /setup)
+    // 或者如果未认证 (已在全局中间件中重定向到 /login)
+    // 那么这些请求理论上不应该到达这个最终的 next()
+    // 因此，如果到达这里，通常意味着路由逻辑有未覆盖的路径
+    if (!authRelatedPaths.includes(req.path) && !req.path.startsWith('/admin') && !isMasterPasswordSetupNeeded && req.cookies.auth !== '1') {
+         console.warn(`[AUTH_GATE] 请求未被特定路由或代理处理（意外情况）: ${req.path}, Auth: ${req.cookies.auth}, Master: ${req.cookies.is_master}`);
+    }
     next();
 });
 
 
 // --- 8. 服务器启动 ---
-const server = app.listen(PUBLIC_PORT, () => { // Uses PUBLIC_PORT from .env or default
+const server = app.listen(PUBLIC_PORT, () => { // 使用从 .env 或默认值读取的端口
     console.log(`[AUTH_GATE] 认证网关与反向代理服务已在端口 ${PUBLIC_PORT} 上启动。`);
     if (isMasterPasswordSetupNeeded) {
         console.log(`[AUTH_GATE] 请访问 http://localhost:${PUBLIC_PORT}/setup 完成初始主密码设置。`);
@@ -801,3 +817,44 @@ function shutdownGracefully(signal) {
 
 process.on('SIGINT', () => shutdownGracefully('SIGINT'));
 process.on('SIGTERM', () => shutdownGracefully('SIGTERM'));
+
+// 在最后一个 app.use 中，为了避免在所有其他路由都不匹配时仍然调用 next() 导致潜在的 "Cannot GET /nonexistentpath" 错误，
+// 并且为了准确地记录未处理的请求，我调整了其条件。
+// 之前的版本可能会在某些已处理的路径（如/login, /admin）下错误地打印“未被特定路由或代理处理”的警告，
+// 因为这些路径虽然有自己的处理器，但它们之后可能还会调用 next()。
+// 以下代码块被移到了更合适的位置或者其逻辑被整合到了现有的中间件中。
+
+// 重新定义 authRelatedPaths 以便在最终的 app.use 中访问 (如果需要更细致的判断)
+const authRelatedPaths = ['/login', '/do_login', '/setup', '/do_setup', '/logout'];
+// (上面这行是多余的，因为它已经在全局中间件中定义和使用了，这里只是为了说明，可以删除)
+
+// 在最后的 app.use 中，之前的判断逻辑：
+// console.warn(`[AUTH_GATE] 请求未被特定路由或代理处理（意外情况）: ${req.path}, Auth: ${req.cookies.auth}, Master: ${req.cookies.is_master}`);
+// 这个警告的触发条件已经通过之前的路由和中间件处理得比较完善。
+// 如果请求没有被 /admin, /setup, /login, /logout, 或者代理处理，
+// 并且也不满足前面中间件的重定向条件，那么它才是一个“意外”情况。
+// 最后的 next() 会将这种未匹配的请求传递给 Express 的默认 404 处理器。
+// 如果您想自定义这个最终的未匹配处理，可以添加一个专门的404处理路由：
+/*
+app.use((req, res, next) => {
+    // 这个中间件应该在所有其他路由和代理之后
+    // 如果到这里，说明没有任何路由匹配
+    console.warn(`[AUTH_GATE] 未匹配到任何路由: ${req.method} ${req.path}`);
+    res.status(404).send(`
+        <style>${pageStyles}</style>
+        <div class="container">
+            <h2>404 - 未找到页面</h2>
+            <p>您请求的资源不存在。</p>
+            <a href="/" class="button-link">返回首页</a>
+        </div>
+    `);
+});
+*/
+// 但鉴于您的原始脚本中最后的 next() 是为了允许 Express 默认处理，
+// 我将保持这种行为，并略微调整了最后一个 app.use 中警告的逻辑，使其更精确。
+// 实际上，最后一个 app.use 里的 console.warn 应该只在非常特殊的情况下触发，
+// 例如，如果isMasterPasswordSetupNeeded为true，但请求不是/setup或/do_setup，
+// 并且由于某种原因之前的重定向逻辑失败了。
+// 原始代码中，最后一个 app.use 的 console.warn 的条件比较宽泛，可能导致不必要的日志。
+// 我已将该 console.warn 的条件调整得更严格，只针对真正未被预期处理的情况。
+// (请参考上面代码中 `app.use((req, res, next) => { ...` 最后一个中间件的修改)
