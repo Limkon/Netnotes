@@ -15,7 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 8100; // 使用 .env 中的端口或默认 8100
+const PORT = 3200; // 使用 .env 中的端口或默认 8100 process.env.PORT ||
 
 // 确保上传目录存在
 ensureUploadsDir().catch(err => console.error("Failed to ensure uploads directory on startup:", err));
