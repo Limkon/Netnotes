@@ -139,7 +139,7 @@ Exec=bash -c "cd $PROJECT_DIR && $NODE_EXEC_PATH server.js"
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Name=Chatroom Server (liuyanshi)
+Name=Chatroom Server
 Comment=Start liuyanshi Server automatically
 EOF
 chmod +x "$AUTOSTART_FILE" # 确保 desktop 文件可执行（某些桌面环境可能需要）
