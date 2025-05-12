@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理用户 - 知古纪</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>知古纪 - 管理员面板</h1>
+        <nav>
+            <span class="welcome-user">管理员: <strong id="adminUsernameDisplay">{{adminUsername}}</strong></span>
+            <a href="/" class="button-action">返回贴子列表</a>
+            <button id="logoutButton" class="button-danger">登出</button>
+        </nav>
+    </header>
+    <div class="container">
+        <h2>用户管理</h2>
+
+        <div id="adminMessages"></div>
+        <h3>新建用户</h3>
+        <form id="addUserForm" class="form-styled">
+            <div>
+                <label for="newUsername">用户名:</label>
+                <input type="text" id="newUsername" name="username" required>
+            </div>
+            <div>
+                <label for="newPassword">密码:</label>
+                <input type="password" id="newPassword" name="password">
+            </div>
+            <div>
+                <label for="newRole">角色:</label>
+                <select id="newRole" name="role">
+                    <option value="user" selected>普通用户 (user)</option>
+                    <option value="admin">管理员 (admin)</option>
+                </select>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="button-action">新建用户</button>
+            </div>
+        </form>
+
+        <h3>现有用户列表</h3>
+        <ul id="userList" class="user-list">
+            <li>正在加载用户列表...</li>
+        </ul>
+    </div>
+    <footer>
+        <p>&copy; 2025 知古纪。</p>
+    </footer>
+    <script src="/js/main.js"></script>
+    <script>
+        const currentAdminUsername = "{{adminUsername}}";
+        const currentAdminId = "{{adminUserId}}";
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('adminUsernameDisplay').textContent = currentAdminUsername || 'Admin';
+            loadUsersForAdmin(currentAdminId);
+            setupAdminUserForm();
+        });
+    </script>
+</body>
+</html>

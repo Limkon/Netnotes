@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 知古纪</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>知古纪</h1>
+    </header>
+    <div class="container">
+        <h2>用户登录</h2>
+        {{#if error_message}}
+        <div class="error-message" id="errorMessage">{{error_message}}</div>
+        {{/if}}
+        <form id="loginForm" method="POST" action="/login">
+            <div>
+                <label for="username">用户名:</label>
+                <input type="text" id="username" name="username" value="{{username_value}}" required>
+            </div>
+            <div>
+                <label for="password">密码:</label>
+                <input type="password" id="password" name="password">
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="button-action">登录</button>
+                <a href="/register" class="button-action" style="background-color: #6c757d; border-color: #6c757d;">注册新账户</a>
+            </div>
+        </form>
+    </div>
+    <footer>
+        <p>&copy; 2025 知古纪。</p>
+    </footer>
+    <script>
+        const form = document.getElementById('loginForm');
+        const errorMessageDiv = document.getElementById('errorMessage');
+        if (form && errorMessageDiv) {
+            form.addEventListener('input', () => {});
+        }
+        if (errorMessageDiv && !errorMessageDiv.textContent.trim()) {
+            errorMessageDiv.style.display = 'none';
+        }
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('logged_out')) {
+            const successMsgDiv = document.createElement('div');
+            successMsgDiv.className = 'success-message';
+            successMsgDiv.textContent = '您已成功登出。';
+            const container = document.querySelector('.container');
+            if (form) {
+                container.insertBefore(successMsgDiv, form);
+            } else {
+                container.appendChild(successMsgDiv);
+            }
+        }
+        if (urlParams.has('registered')) {
+            const successMsgDiv = document.createElement('div');
+            successMsgDiv.className = 'success-message';
+            successMsgDiv.textContent = '注册成功！现在您可以登录了。';
+            const container = document.querySelector('.container');
+             if (form) {
+                container.insertBefore(successMsgDiv, form);
+            } else {
+                container.appendChild(successMsgDiv);
+            }
+        }
+    </script>
+</body>
+</html>

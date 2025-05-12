@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的贴子 - 知古纪</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>知古纪</h1>
+        <nav id="mainNav">
+            </nav>
+    </header>
+    <div class="container">
+        <div class="toolbar-actions" style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+            <form id="searchForm" style="display: flex; gap: 10px; flex-grow: 1;">
+                <input type="search" id="searchInput" name="search" placeholder="输入关键字搜索贴子..." style="flex-grow: 1; padding: 0.5rem; border: 1px solid #ccc; border-radius: 0.25rem; min-height:38px; box-sizing:border-box;">
+                <button type="submit" class="button-action" style="min-width: 80px;">搜索</button>
+            </form>
+            <button id="clearSearchButton" class="button-action button-cancel" style="min-width: 100px; background-color: #6c757d; border-color: #6c757d; display: none;">清除搜索</button>
+        </div>
+
+        <h2>贴子列表</h2>
+        <div id="globalMessageArea" style="margin-bottom: 15px;"></div>
+        <div id="notesContainer">
+            <p>正在加载贴子...</p>
+        </div>
+    </div>
+    <footer>
+        <p>&copy; 2025 知古纪。</p>
+    </footer>
+    <script src="/js/main.js"></script>
+    <script>
+        const currentUsernameFromServer = "{{username}}";
+        const currentUserRoleFromServer = "{{userRole}}";
+        const currentUserIdFromServer = "{{userId}}"; // 确保从后端传递 userId
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupNavigation(currentUsernameFromServer, currentUserRoleFromServer, currentUserIdFromServer);
+            loadNotes(); // 初始加载所有贴子
+
+            const searchForm = document.getElementById('searchForm');
+            const searchInput = document.getElementById('searchInput');
+            const clearSearchButton = document.getElementById('clearSearchButton');
+
+            if (searchForm) {
+                searchForm.addEventListener('submit', (event) => {
+                    event.preventDefault();
+                    const searchTerm = searchInput.value.trim();
+                    loadNotes(searchTerm); // 带关键字加载贴子
+                    if (searchTerm) {
+                        clearSearchButton.style.display = 'inline-flex';
+                    } else {
+                        clearSearchButton.style.display = 'none';
+                    }
+                });
+            }
+
+            if (clearSearchButton) {
+                clearSearchButton.addEventListener('click', () => {
+                    searchInput.value = '';
+                    loadNotes(); // 加载所有贴子
+                    clearSearchButton.style.display = 'none';
+                });
+            }
+        });
+    </script>
+</body>
+</html>

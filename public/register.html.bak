@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 知古纪</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>知古纪</h1>
+    </header>
+    <div class="container">
+        <h2>注册新账户</h2>
+        <div id="registerMessage"></div> <form id="registerForm">
+            <div>
+                <label for="regUsername">用户名:</label>
+                <input type="text" id="regUsername" name="username" required>
+            </div>
+            <div>
+                <label for="regPassword">密码 (可为空):</label>
+                <input type="password" id="regPassword" name="password">
+            </div>
+            <div>
+                <label for="regConfirmPassword">确认密码:</label>
+                <input type="password" id="regConfirmPassword" name="confirmPassword">
+            </div>
+            <div class="form-actions">
+                <button type="submit" id="registerButton" class="button-action">注册</button>
+                <a href="/login" class="button-action" style="background-color: #6c757d; border-color: #6c757d;">返回登录</a>
+            </div>
+        </form>
+    </div>
+    <footer>
+        <p>&copy; 2025 知古纪。</p>
+    </footer>
+    <script src="/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            setupRegistrationForm(); // 在 main.js 中定义
+        });
+    </script>
+</body>
+</html>

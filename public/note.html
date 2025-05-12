@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{pageTitle}} - 知古纪</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <h1>知古纪</h1>
+        <nav id="mainNav">
+            </nav>
+    </header>
+    <div class="container">
+        <h2 id="pageTitleHeader">{{pageTitle}}</h2>
+        <form id="noteForm">
+            <input type="hidden" id="noteId" name="noteId" value="{{noteId}}">
+            <div>
+                <label for="title">标题:</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+            <div>
+                <label for="richContent">内容:</label>
+                <div class="rich-text-editor-wrapper">
+                    <div id="richTextToolbar">
+                        <button type="button" data-command="bold" title="加粗"><b>B</b></button>
+                        <button type="button" data-command="italic" title="斜体"><i>I</i></button>
+                        <button type="button" data-command="underline" title="下划线"><u>U</u></button>
+                        <button type="button" data-command="insertUnorderedList" title="项目符号列表">UL</button>
+                        <button type="button" data-command="insertOrderedList" title="编号列表">OL</button>
+                        <button type="button" data-command="createLink" title="插入链接">链接</button>
+                        <button type="button" data-command="unlink" title="移除链接">移除链接</button>
+                        <select id="fontNameSelector" title="字体">
+                            <option value="Arial">Arial</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Impact">Impact</option>
+                            <option value="SimSun">宋体</option>
+                            <option value="Microsoft YaHei">微软雅黑</option>
+                            <option value="KaiTi">楷体</option>
+                        </select>
+                        <select id="fontSizeSelector" title="字体大小">
+                            <option value="1">小</option>
+                            <option value="2">稍小</option>
+                            <option value="3" selected>正常</option>
+                            <option value="4">稍大</option>
+                            <option value="5">大</option>
+                            <option value="6">很大</option>
+                            <option value="7">特大</option>
+                        </select>
+                        <label for="foreColorPicker" class="sr-only">文字颜色</label>
+                        <input type="color" id="foreColorPicker" title="文字颜色" value="#000000">
+                        <button type="button" id="insertLocalImageButton" title="插入本地图片">图片</button>
+                        <input type="file" id="imageUploadInput" accept="image/*" style="display:none;">
+                    </div>
+                    <div id="richContent" contenteditable="true"></div>
+                </div>
+                <textarea name="content" id="hiddenContent" style="display:none;"></textarea>
+            </div>
+            <div>
+                <label for="attachment">附件 (可选):</label>
+                <input type="file" id="attachment" name="attachment">
+                <div id="currentAttachment" class="current-attachment-info"></div>
+                <div id="removeAttachmentContainer" style="display:none; margin-top: 5px;">
+                    <input type="checkbox" id="removeAttachmentCheckbox" name="removeAttachment" value="true">
+                    <label for="removeAttachmentCheckbox" class="checkbox-label">移除当前附件</label>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="submit" id="saveNoteButton" class="button-action">保存</button>
+                <a href="/" class="button-action button-cancel">取消</a>
+            </div>
+        </form>
+        <div id="formMessage" style="margin-top:15px;"></div>
+    </div>
+    <footer>
+        <p>&copy; 2025 知古纪。</p>
+    </footer>
+    <script src="/js/main.js"></script>
+    <script>
+        // 从服务器端模板获取初始用户信息
+        const currentUsernameFromServer = "{{username}}"; 
+        const currentUserRoleFromServer = "{{userRole}}";   
+        const currentUserIdFromServer = "{{userId}}";     
+        const noteIdForEdit = "{{noteId}}";
+        const pageTitleFromServer = "{{pageTitle}}";
+        let pageTitle = pageTitleFromServer;
+
+        // console.log("[note.html DEBUG] currentUsernameFromServer:", currentUsernameFromServer);
+        // console.log("[note.html DEBUG] currentUserRoleFromServer:", currentUserRoleFromServer);
+        // console.log("[note.html DEBUG] currentUserIdFromServer:", currentUserIdFromServer);
+
+        if (pageTitleFromServer.includes("编辑") || pageTitleFromServer.includes("編輯")) {
+            pageTitle = "编辑贴子";
+        } else if (pageTitleFromServer.includes("新增") || pageTitleFromServer.includes("新建")) {
+            pageTitle = "新建贴子";
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // setupNavigation 会处理 mainNav 内部的 usernameDisplayInNav
+            // 对于 note.html，我们可能有一个独立的 usernameDisplay 在 nav 之外，所以也更新它
+            const usernameDisplaySpan = document.getElementById('usernameDisplay');
+            if (usernameDisplaySpan) { // 这个 id 可能与 main.js 中 setupNavigation 期望的不同
+                usernameDisplaySpan.textContent = (currentUsernameFromServer && currentUsernameFromServer !== "{{username}}") ? currentUsernameFromServer : '用户';
+            }
+
+            setupNavigation(currentUsernameFromServer, currentUserRoleFromServer, currentUserIdFromServer);
+            
+            const pageTitleHeader = document.getElementById('pageTitleHeader');
+            if(pageTitleHeader) pageTitleHeader.textContent = pageTitle;
+            document.title = `${pageTitle} - 知古纪`;
+
+            initializeRichTextEditor();
+            setupNoteForm();
+
+            if (noteIdForEdit) {
+                loadNoteForEditing(noteIdForEdit);
+            }
+        });
+    </script>
+</body>
+</html>

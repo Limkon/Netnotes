@@ -1,52 +1,71 @@
-import express from 'express';
-import methodOverride from 'method-override';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
+// server.js - 主服务器逻辑
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const { handleRequest } = require('./router');
+const storage = require('./storage'); // 引入 storage 模块
 
-import noteRoutes from './routes/notes.js';
-import { ensureUploadsDir } from './utils/fileStore.js'; // 确保上传目录的函数
+const PORT = process.env.PORT || 8100;
+const DATA_DIR = path.join(__dirname, 'data');
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
 
-// 配置 dotenv
-dotenv.config();
+function initializeDirectories() {
+    if (!fs.existsSync(DATA_DIR)) {
+        fs.mkdirSync(DATA_DIR, { recursive: true });
+        console.log(`目录 ${DATA_DIR} 已创建。`);
+    }
+    if (!fs.existsSync(UPLOADS_DIR)) {
+        fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+        console.log(`目录 ${UPLOADS_DIR} 已创建。`);
+    }
+    if (!fs.existsSync(path.join(DATA_DIR, 'users.json'))) {
+        fs.writeFileSync(path.join(DATA_DIR, 'users.json'), '[]', 'utf8');
+        console.log(`文件 ${path.join(DATA_DIR, 'users.json')} 已创建。`);
+    }
+    if (!fs.existsSync(path.join(DATA_DIR, 'notes.json'))) {
+        fs.writeFileSync(path.join(DATA_DIR, 'notes.json'), '[]', 'utf8');
+        console.log(`文件 ${path.join(DATA_DIR, 'notes.json')} 已创建。`);
+    }
+}
 
-// __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+function initializeAdminUser() {
+    const adminUsername = 'admin';
+    if (!storage.findUserByUsername(adminUsername)) {
+        storage.saveUser({
+            username: adminUsername,
+            password: 'admin', // 初始明文密码，storage.saveUser 会哈希
+            role: 'admin'
+        });
+        console.log(`默认管理员账户 '${adminUsername}' (密码: 'admin') 已创建。`);
+    }
+}
 
-const app = express();
-const PORT = process.env.PORT || 8100; // 使用 .env 中的端口或默认 8100 
-
-// 确保上传目录存在
-ensureUploadsDir().catch(err => console.error("Failed to ensure uploads directory on startup:", err));
-
-
-// 中间件
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(methodOverride('_method'));
-app.use(express.static(path.join(__dirname, 'public'))); // 静态文件服务
-
-// 路由
-app.get('/', (req, res) => {
-  res.redirect('/notes');
+const server = http.createServer((req, res) => {
+    const chunks = [];
+    req.on('data', chunk => chunks.push(chunk));
+    req.on('end', () => {
+        const rawBuffer = Buffer.concat(chunks);
+        handleRequest(req, res, rawBuffer);
+    });
+    req.on('error', (err) => {
+        console.error('请求错误:', err);
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('服务器内部错误');
+    });
 });
-app.use('/notes', noteRoutes);
 
-// 404 错误处理
-app.use((req, res, next) => {
-  res.status(404).render('partials/404');
+server.listen(PORT, () => {
+    initializeDirectories();
+    // 移除了 storage.initializeAnonymousUser(); 
+    // "anyone" 用户现在由管理员通过用户管理界面手动创建/删除。
+    initializeAdminUser(); 
+    console.log(`服务器正在监听 http://localhost:${PORT}/`);
+    console.log("提示：密码已加密存储。");
 });
 
-// 全局错误处理 (可选, 更健壮的错误处理)
-app.use((err, req, res, next) => {
-  console.error("Global Error Handler:", err.stack);
-  res.status(500).send('Something broke!');
+process.on('uncaughtException', (err) => {
+    console.error('未捕获的异常:', err);
 });
-
-
-app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('未处理的 Promise Rejection:', promise, '原因:', reason);
 });

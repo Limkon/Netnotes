@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{noteTitle}} - 知古纪</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .note-view-content {
+            padding: 15px;
+            border: 1px solid #eee;
+            background-color: #fdfdfd;
+            border-radius: 5px;
+            margin-top: 10px;
+            word-wrap: break-word; 
+            overflow-wrap: break-word; 
+        }
+        .note-view-content img { 
+            max-width: 100%;
+            height: auto;
+            display: block; 
+            margin: 10px 0; 
+        }
+        .note-view-meta {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px dashed #eee;
+        }
+        .note-view-attachment {
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>知古纪</h1>
+        <nav id="mainNav">
+            </nav>
+    </header>
+    <div class="container"> <h2 id="noteViewTitle">{{noteTitle}}</h2>
+        
+        <div class="note-view-content" id="noteViewContent">
+            {{{noteContent}}}
+        </div>
+
+        {{#if noteAttachmentPath}}
+        <div class="note-view-attachment">
+            <strong>附件:</strong> 
+            <a href="/uploads/{{noteAttachmentPath}}" target="_blank" title="下载 {{noteAttachmentOriginalName}}">
+                {{noteAttachmentOriginalName}}
+            </a>
+            {{#if noteAttachmentSizeKB}}
+            <span>({{noteAttachmentSizeKB}} KB)</span>
+            {{/if}} </div>
+        {{/if}} <div class="note-view-meta">
+            <p>所有者: {{noteOwnerUsername}}</p>
+            <p>创建时间: {{noteCreatedAt}}</p>
+            <p>最后更新: {{noteUpdatedAt}}</p>
+        </div>
+
+        <div class="form-actions" style="margin-top: 30px;">
+            <a href="/" class="button-action">返回列表</a>
+            {{#if canEdit}} 
+            <a href="/note/edit?id={{noteId}}" class="button-action">编辑此贴子</a>
+            {{/if}} </div>
+
+    </div> <footer>
+        <p>&copy; 2025 知古纪。</p>
+    </footer>
+    <script src="/js/main.js"></script>
+    <script>
+        const currentUsernameFromServer = "{{username}}"; 
+        const currentUserRoleFromServer = "{{userRole}}";   
+        const currentUserIdFromServer = "{{userId}}";     
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupNavigation(currentUsernameFromServer, currentUserRoleFromServer, currentUserIdFromServer);
+            
+            const noteTitleElement = document.getElementById('noteViewTitle');
+            if (noteTitleElement && noteTitleElement.textContent) { 
+                 document.title = `${noteTitleElement.textContent.trim()} - 知古纪`;
+            } else if ("{{noteTitle}}") { 
+                 document.title = `{{noteTitle}} - 知古纪`;
+            } else {
+                 document.title = `查看贴子 - 知古纪`; 
+            }
+        });
+    </script>
+</body>
+</html>
